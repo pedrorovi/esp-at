@@ -627,10 +627,76 @@ static uint8_t at_queryCmdUartDef (uint8_t *cmd_name)
     return ESP_AT_RESULT_CODE_OK;
 }
 
+
+
+uint8_t at_test_cmd_test(uint8_t *cmd_name)
+{
+    uint8_t buffer[64] = {0};
+
+    snprintf((char *)buffer, 64, "this cmd is test cmd: %s\r\n", cmd_name);
+
+    esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+    return ESP_AT_RESULT_CODE_OK;
+}
+
+uint8_t at_query_cmd_test(uint8_t *cmd_name)
+{
+    uint8_t buffer[64] = {0};
+
+    snprintf((char *)buffer, 64, "this cmd is query cmd: %s\r\n", cmd_name);
+
+    esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+    return ESP_AT_RESULT_CODE_OK;
+}
+
+uint8_t at_setup_cmd_test(uint8_t para_num)
+{
+    int32_t para_int_1 = 0;
+    uint8_t *para_str_2 = NULL;
+    uint8_t num_index = 0;
+    uint8_t buffer[64] = {0};
+
+    if (esp_at_get_para_as_digit(num_index++, &para_int_1) != ESP_AT_PARA_PARSE_RESULT_OK) {
+        return ESP_AT_RESULT_CODE_ERROR;
+    }
+
+    if (esp_at_get_para_as_str(num_index++, &para_str_2) != ESP_AT_PARA_PARSE_RESULT_OK) {
+        return ESP_AT_RESULT_CODE_ERROR;
+    }
+
+    snprintf((char *)buffer, 64, "this cmd is setup cmd and cmd num is: %u\r\n", para_num);
+    esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+    memset(buffer, 0, 64);
+    snprintf((char *)buffer, 64, "first parameter is: %d\r\n", para_int_1);
+    esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+    memset(buffer, 0, 64);
+    snprintf((char *)buffer, 64, "second parameter is: %s\r\n", para_str_2);
+    esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+    return ESP_AT_RESULT_CODE_OK;
+}
+
+uint8_t at_exe_cmd_test(uint8_t *cmd_name)
+{
+    uint8_t buffer[64] = {0};
+
+    snprintf((char *)buffer, 64, "this cmd is execute cmd: %s\r\n", cmd_name);
+
+    esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+    return ESP_AT_RESULT_CODE_OK;
+}
+
+
 static esp_at_cmd_struct at_custom_cmd[] = {
     {"+UART", NULL, at_queryCmdUart, at_setupCmdUartDef, NULL},
     {"+UART_CUR", NULL, at_queryCmdUart, at_setupCmdUart, NULL},
     {"+UART_DEF", NULL, at_queryCmdUartDef, at_setupCmdUartDef, NULL},
+    {"+TEST", at_test_cmd_test, at_query_cmd_test, at_setup_cmd_test, at_exe_cmd_test},
 };
 
 void at_status_callback (esp_at_status_type status)
@@ -724,6 +790,7 @@ void at_interface_init (void)
 void at_custom_init(void)
 {
     esp_at_custom_cmd_array_regist (at_custom_cmd, sizeof(at_custom_cmd)/sizeof(at_custom_cmd[0]));
+    
     esp_at_port_write_data((uint8_t *)"\r\nready\r\n",strlen("\r\nready\r\n"));
 }
 #endif
