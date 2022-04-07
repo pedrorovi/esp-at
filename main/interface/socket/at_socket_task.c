@@ -269,7 +269,7 @@ void at_custom_init(void)
     ESP_LOGI(TAG, "IP address of Soft AP is:"IPSTR, IP2STR(&ip.ip));
 
     xTaskCreate(&socket_task, "socket_task", 4096, NULL, 5, NULL);
-
+    
     esp_at_port_write_data((uint8_t*) "\r\nready\r\n", strlen("\r\nready\r\n"));
 }
 #endif

@@ -651,34 +651,186 @@ uint8_t at_query_cmd_test(uint8_t *cmd_name)
     return ESP_AT_RESULT_CODE_OK;
 }
 
+
+// uint8_t at_setup_cmd_test(uint8_t para_num)
+// {
+//     int32_t para_int_1 = 0;
+//     uint8_t *para_str_2 = NULL;
+//     uint8_t num_index = 0;
+//     uint8_t buffer[64] = {0};
+
+//     if (esp_at_get_para_as_digit(num_index++, &para_int_1) != ESP_AT_PARA_PARSE_RESULT_OK) {
+//         return ESP_AT_RESULT_CODE_ERROR;
+//     }
+
+//     if (esp_at_get_para_as_str(num_index++, &para_str_2) != ESP_AT_PARA_PARSE_RESULT_OK) {
+//         return ESP_AT_RESULT_CODE_ERROR;
+//     }
+
+//     snprintf((char *)buffer, 64, "this cmd is setup cmd and cmd num is: %u\r\n", para_num);
+//     esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+//     memset(buffer, 0, 64);
+//     snprintf((char *)buffer, 64, "first parameter is: %d\r\n", para_int_1);
+//     esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+//     memset(buffer, 0, 64);
+//     snprintf((char *)buffer, 64, "second parameter is: %s\r\n", para_str_2);
+//     esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+//     return ESP_AT_RESULT_CODE_OK;
+// }
+
+static xSemaphoreHandle at_sync_sema = NULL;
+
+void wait_data_callback(void)
+{
+    xSemaphoreGive(at_sync_sema);
+}
+
 uint8_t at_setup_cmd_test(uint8_t para_num)
 {
-    int32_t para_int_1 = 0;
-    uint8_t *para_str_2 = NULL;
-    uint8_t num_index = 0;
+    int32_t specified_len = 0;
+    int32_t received_len = 0;
+    int32_t remain_len = 0;
+    uint8_t *buf = NULL;
     uint8_t buffer[64] = {0};
 
-    if (esp_at_get_para_as_digit(num_index++, &para_int_1) != ESP_AT_PARA_PARSE_RESULT_OK) {
+    if (esp_at_get_para_as_digit(0, &specified_len) != ESP_AT_PARA_PARSE_RESULT_OK) {
         return ESP_AT_RESULT_CODE_ERROR;
     }
 
-    if (esp_at_get_para_as_str(num_index++, &para_str_2) != ESP_AT_PARA_PARSE_RESULT_OK) {
-        return ESP_AT_RESULT_CODE_ERROR;
+    buf = (uint8_t *)malloc(specified_len);
+    if (buf == NULL) {
+        memset(buffer, 0, 64);
+        snprintf((char *)buffer, 64, "malloc failed\r\n");
+        esp_at_port_write_data(buffer, strlen((char *)buffer));
     }
 
-    snprintf((char *)buffer, 64, "this cmd is setup cmd and cmd num is: %u\r\n", para_num);
-    esp_at_port_write_data(buffer, strlen((char *)buffer));
+    // sample code
+    // users don't have to create semaphores here
+    if (!at_sync_sema) {
+        at_sync_sema = xSemaphoreCreateBinary();
+        assert(at_sync_sema != NULL);
+    }
 
-    memset(buffer, 0, 64);
-    snprintf((char *)buffer, 64, "first parameter is: %d\r\n", para_int_1);
-    esp_at_port_write_data(buffer, strlen((char *)buffer));
+    // output input prompt ">"
+    esp_at_port_write_data((uint8_t *)">", strlen(">"));
 
-    memset(buffer, 0, 64);
-    snprintf((char *)buffer, 64, "second parameter is: %s\r\n", para_str_2);
-    esp_at_port_write_data(buffer, strlen((char *)buffer));
+    // set the callback function which will be called by AT port after receiving the input data
+    esp_at_port_enter_specific(wait_data_callback);
+
+    // receie input data
+    while(xSemaphoreTake(at_sync_sema, portMAX_DELAY)) {
+        received_len += esp_at_port_read_data(buf + received_len, specified_len - received_len);
+
+        if (specified_len == received_len) {
+            esp_at_port_exit_specific();
+
+            // get the length of the remaining input data
+            remain_len = esp_at_port_get_data_length();
+            if (remain_len > 0) {
+                // sample code
+                // if the remaining data length > 0, the actual input data length is greater than the specified received data length
+                // users can customize the operation to process the remaining data
+                // here is just a simple print out of the remaining data
+                esp_at_port_recv_data_notify(remain_len, portMAX_DELAY);
+            }
+
+            // sample code
+            // output received data
+            memset(buffer, 0, 64);
+            snprintf((char *)buffer, 64, "\r\nreceived data is: ");
+            esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+            esp_at_port_write_data(buf, specified_len);
+
+            break;
+        }
+    }
+
+    free(buf);
 
     return ESP_AT_RESULT_CODE_OK;
 }
+
+
+
+// uint8_t at_setup_cmd_test(uint8_t para_num)
+// {
+//     int32_t para_int_1 = 0;
+//     int32_t para_int_2 = 0;
+//     uint8_t *para_str_3 = NULL;
+//     uint8_t *para_str_4 = NULL;
+//     uint8_t num_index = 0;
+//     uint8_t buffer[64] = {0};
+//     esp_at_para_parse_result_type parse_result = ESP_AT_PARA_PARSE_RESULT_OK;
+
+//     snprintf((char *)buffer, 64, "this cmd is setup cmd and cmd num is: %u\r\n", para_num);
+//     esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+//     parse_result = esp_at_get_para_as_digit(num_index++, &para_int_1);
+//     if (parse_result != ESP_AT_PARA_PARSE_RESULT_OK) {
+//         return ESP_AT_RESULT_CODE_ERROR;
+//     } else {
+//         memset(buffer, 0, 64);
+//         snprintf((char *)buffer, 64, "first parameter is: %d\r\n", para_int_1);
+//         esp_at_port_write_data(buffer, strlen((char *)buffer));
+//     }
+
+//     parse_result = esp_at_get_para_as_digit(num_index++, &para_int_2);
+//     if (parse_result != ESP_AT_PARA_PARSE_RESULT_OMITTED) {
+//         if (parse_result != ESP_AT_PARA_PARSE_RESULT_OK) {
+//             return ESP_AT_RESULT_CODE_ERROR;
+//         } else {
+//             // sample code
+//             // user needs to customize the operation
+//             memset(buffer, 0, 64);
+//             snprintf((char *)buffer, 64, "second parameter is: %d\r\n", para_int_2);
+//             esp_at_port_write_data(buffer, strlen((char *)buffer));
+//         }
+//     } else {
+//         // sample code
+//         // the second parameter is omitted
+//         // user needs to customize the operation
+//         memset(buffer, 0, 64);
+//         snprintf((char *)buffer, 64, "second parameter is omitted\r\n");
+//         esp_at_port_write_data(buffer, strlen((char *)buffer));
+//     }
+
+//     parse_result = esp_at_get_para_as_str(num_index++, &para_str_3);
+//     if (parse_result != ESP_AT_PARA_PARSE_RESULT_OMITTED) {
+//         if (parse_result != ESP_AT_PARA_PARSE_RESULT_OK) {
+//             return ESP_AT_RESULT_CODE_ERROR;
+//         } else {
+//             // sample code
+//             // user needs to customize the operation
+//             memset(buffer, 0, 64);
+//             snprintf((char *)buffer, 64, "third parameter is: %s\r\n", para_str_3);
+//             esp_at_port_write_data(buffer, strlen((char *)buffer));
+//         }
+//     } else {
+//         // sample code
+//         // the third parameter is omitted
+//         // user needs to customize the operation
+//         memset(buffer, 0, 64);
+//         snprintf((char *)buffer, 64, "third parameter is omitted\r\n");
+//         esp_at_port_write_data(buffer, strlen((char *)buffer));
+//     }
+
+//     parse_result = esp_at_get_para_as_str(num_index++, &para_str_4);
+//     if (parse_result != ESP_AT_PARA_PARSE_RESULT_OK) {
+//         return ESP_AT_RESULT_CODE_ERROR;
+//     } else {
+//         memset(buffer, 0, 64);
+//         snprintf((char *)buffer, 64, "fourth parameter is: %s\r\n", para_str_4);
+//         esp_at_port_write_data(buffer, strlen((char *)buffer));
+//     }
+
+//     return ESP_AT_RESULT_CODE_OK;
+// }
+
+// xSemaphoreHandle at_operation_sema = NULL;
 
 uint8_t at_exe_cmd_test(uint8_t *cmd_name)
 {
@@ -688,8 +840,88 @@ uint8_t at_exe_cmd_test(uint8_t *cmd_name)
 
     esp_at_port_write_data(buffer, strlen((char *)buffer));
 
+    // user-defined operation of sending data to server or MCU
+    // send_data_to_server();
+    
+    // output SEND OK
+    esp_at_response_result(ESP_AT_RESULT_CODE_SEND_OK);
+
     return ESP_AT_RESULT_CODE_OK;
 }
+
+#define BUFFER_LEN (2048)
+// static xSemaphoreHandle at_sync_sema_ = NULL;
+
+// void wait_data_callback(void)
+// {
+    // xSemaphoreGive(at_sync_sema);
+// }
+
+// uint8_t at_exe_cmd_test(uint8_t *cmd_name)
+// {
+//     int32_t received_len = 0;
+//     int32_t remain_len = 0;
+//     uint8_t *buf = NULL;
+//     uint8_t buffer[64] = {0};
+
+
+//     buf = (uint8_t *)malloc(BUFFER_LEN);
+//     if (buf == NULL) {
+//         memset(buffer, 0, 64);
+//         snprintf((char *)buffer, 64, "malloc failed\r\n");
+//         esp_at_port_write_data(buffer, strlen((char *)buffer));
+//     }
+
+//     // sample code
+//     // users don't have to create semaphores here
+//     if (!at_sync_sema) {
+//         at_sync_sema = xSemaphoreCreateBinary();
+//         assert(at_sync_sema != NULL);
+//     }
+
+//     // output input prompt ">"
+//     esp_at_port_write_data((uint8_t *)">", strlen(">"));
+
+//     // set the callback function which will be called by AT port after receiving the input data
+//     esp_at_port_enter_specific(wait_data_callback);
+
+//     // receie input data
+//     while(xSemaphoreTake(at_sync_sema, portMAX_DELAY)) {
+//         memset(buf, 0, BUFFER_LEN);
+
+//         received_len = esp_at_port_read_data(buf, BUFFER_LEN);
+//         // check whether to exit the mode
+//         // the exit condition is the “+++” string received
+//         if ((received_len == 3) && (strncmp((const char *)buf, "+++", 3)) == 0) {
+//             esp_at_port_exit_specific();
+
+//             // sample code
+//             // if the remaining data length > 0, it means that there is still data left in the buffer to be processed
+//             // users can customize the operation to process the remaining data
+//             // here is just a simple print out of the remaining data
+//             remain_len = esp_at_port_get_data_length();
+//             if (remain_len > 0) {
+//                 esp_at_port_recv_data_notify(remain_len, portMAX_DELAY);
+//             }
+
+//             break;
+//         } else if (received_len > 0) {
+//             // sample code
+//             // users can customize the operation to process the received data
+//             // here is just a simple print received data
+//             memset(buffer, 0, 64);
+//             snprintf((char *)buffer, 64, "\r\nreceived data is: ");
+//             esp_at_port_write_data(buffer, strlen((char *)buffer));
+
+//             esp_at_port_write_data(buf, strlen((char *)buf));
+//         }
+//     }
+
+//     free(buf);
+
+//     return ESP_AT_RESULT_CODE_OK;
+// }
+
 
 
 static esp_at_cmd_struct at_custom_cmd[] = {
