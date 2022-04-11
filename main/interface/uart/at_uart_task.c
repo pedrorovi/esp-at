@@ -48,6 +48,8 @@
 
 #include "ff.h"
 
+#define PEDRO_SIZE 12000
+
 // #include "esp_log.h"
 // #include "esp_http_client.h"
 
@@ -1105,7 +1107,7 @@ static void http_native_request_2(char *output_buffer)
     // uint8_t buffer_4[200] = {0};
 
     esp_http_client_config_t config = {
-        .url = "http://httpbin.org/get",
+        .url = "http://httpbin.org/range/2000",
     };
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
@@ -1189,7 +1191,6 @@ static void spiffs(char *output_buffer)
 
     ESP_LOGI(TAG, "Initializing SPIFFS");
     uint8_t arr[200] = {0};
-
     snprintf((char *)arr, 200, "Initializing SPIFFS\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
     // arr = {0};
@@ -1272,7 +1273,7 @@ static void spiffs(char *output_buffer)
     // fprintf(f, "Hola pedro");
     // for(int loop=0;loop < MAX_HTTP_OUTPUT_BUFFER;++loop)
     // {
-    fwrite(output_buffer, sizeof(char), MAX_HTTP_OUTPUT_BUFFER, f);
+    fwrite(output_buffer, sizeof(char), PEDRO_SIZE, f);
     // }
     // snprintf(f, MAX_HTTP_OUTPUT_BUFFER, output_buffer);
     fclose(f);
@@ -1282,35 +1283,35 @@ static void spiffs(char *output_buffer)
     esp_at_port_write_data(arr, strlen((char *)arr));
     // arr = {0};
 
-    // Check if destination file exists before renaming
-    struct stat st;
-    if (stat("/spiffs/foo.txt", &st) == 0)
-    {
-        // Delete it if it exists
-        unlink("/spiffs/foo.txt");
-    }
+    // // Check if destination file exists before renaming
+    // struct stat st;
+    // if (stat("/spiffs/foo.txt", &st) == 0)
+    // {
+    //     // Delete it if it exists
+    //     unlink("/spiffs/foo.txt");
+    // }
 
-    // Rename original file
-    ESP_LOGI(TAG, "Renaming file");
-    // uint8_t *arr = new uint8_t(200);
-    snprintf((char *)arr, 200, "Renaming file\n");
-    esp_at_port_write_data(arr, strlen((char *)arr));
-    // arr = {0};
+    // // Rename original file
+    // ESP_LOGI(TAG, "Renaming file");
+    // // uint8_t *arr = new uint8_t(200);
+    // snprintf((char *)arr, 200, "Renaming file\n");
+    // esp_at_port_write_data(arr, strlen((char *)arr));
+    // // arr = {0};
 
-    if (rename("/spiffs/hello.txt", "/spiffs/foo.txt") != 0)
-    {
-        ESP_LOGE(TAG, "Rename failed");
-        // uint8_t *arr = new uint8_t(200);
-        snprintf((char *)arr, 200, "Rename failed\n");
-        esp_at_port_write_data(arr, strlen((char *)arr));
-        // arr = {0};
+    // if (rename("/spiffs/hello.txt", "/spiffs/foo.txt") != 0)
+    // {
+    //     ESP_LOGE(TAG, "Rename failed");
+    //     // uint8_t *arr = new uint8_t(200);
+    //     snprintf((char *)arr, 200, "Rename failed\n");
+    //     esp_at_port_write_data(arr, strlen((char *)arr));
+    //     // arr = {0};
 
-        return;
-    }
+    //     return;
+    // }
 
     // Open renamed file for reading
     ESP_LOGI(TAG, "Reading file");
-    f = fopen("/spiffs/foo.txt", "r");
+    f = fopen("/spiffs/hello.txt", "r");
     if (f == NULL)
     {
         ESP_LOGE(TAG, "Failed to open file for reading");
@@ -1322,7 +1323,7 @@ static void spiffs(char *output_buffer)
         return;
     }
     char line[128];
-    uint8_t array[MAX_HTTP_OUTPUT_BUFFER] = {0};
+    // uint8_t array[MAX_HTTP_OUTPUT_BUFFER] = {0};
     // fgets(line, sizeof(line), f);
     while (fgets(line, sizeof(line), f))
     {
@@ -1355,274 +1356,98 @@ static void spiffs(char *output_buffer)
     // arr = {0};
 }
 
-// // Handle of the wear levelling library instance
-// static wl_handle_t s_wl_handle = WL_INVALID_HANDLE;
+static void http_perform_as_stream_reader_pedro(char *buffer)
+{
+    // char *buffer = malloc(MAX_HTTP_RECV_BUFFER + 1);
+    // char *buffer = malloc(10000);
+    uint8_t arr[200] = {0};
 
-// // Mount path for the partition
-// const char *base_path = "/extflash";
+    // uint8_t array[MAX_HTTP_OUTPUT_BUFFER] = {0};
+    if (buffer == NULL)
+    {
+        ESP_LOGE(TAG, "Cannot malloc http receive buffer");
+        snprintf((char *)arr, 200, "Cannot malloc http receive buffer\n");
+        esp_at_port_write_data(arr, strlen((char *)arr));
+        return;
+    }
+    esp_http_client_config_t config = {
+        // .url = "http://httpbin.org/get",
+        .url = "http://httpbin.org/range/12000",
+    };
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_err_t err;
+    if ((err = esp_http_client_open(client, 0)) != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to open HTTP connection: %s", esp_err_to_name(err));
+        snprintf((char *)arr, 200, "Failed to open HTTP connection: %s\n", esp_err_to_name(err));
+        esp_at_port_write_data(arr, strlen((char *)arr));
+        free(buffer);
+        return;
+    }
+    int content_length = esp_http_client_fetch_headers(client);
+    int total_read_len = 0, read_len;
+    if (total_read_len < content_length && content_length <= PEDRO_SIZE)
+    {
+        read_len = esp_http_client_read(client, buffer, content_length);
+        if (read_len <= 0)
+        {
+            ESP_LOGE(TAG, "Error read data");
+            snprintf((char *)arr, 200, "Error read data\n");
+            esp_at_port_write_data(arr, strlen((char *)arr));
+        }
+        buffer[read_len] = 0;
+        ESP_LOGD(TAG, "read_len = %d", read_len);
+        // snprintf((char *)buffer, 513, buffer);
+        esp_at_port_write_data((uint8_t *)buffer, strlen((char *)buffer));
+    }
+    ESP_LOGI(TAG, "\nHTTP Stream reader Status = %d, content_length = %d",
+             esp_http_client_get_status_code(client),
+             esp_http_client_get_content_length(client));
 
-// static esp_flash_t *example_init_ext_flash(void);
-// static const esp_partition_t *example_add_partition(esp_flash_t *ext_flash, const char *partition_label);
-// static void example_list_data_partitions(void);
-// static bool example_mount_fatfs(const char *partition_label);
-// static void example_get_fatfs_usage(size_t *out_total_bytes, size_t *out_free_bytes);
+    snprintf((char *)arr, 200, "\nHTTP Stream reader Status = %d, content_length = %d\n",
+             esp_http_client_get_status_code(client),
+             esp_http_client_get_content_length(client));
 
-// static esp_flash_t *example_init_ext_flash(void)
-// {
-//     const spi_bus_config_t bus_config = {
-//         .mosi_io_num = VSPI_IOMUX_PIN_NUM_MOSI,
-//         .miso_io_num = VSPI_IOMUX_PIN_NUM_MISO,
-//         .sclk_io_num = VSPI_IOMUX_PIN_NUM_CLK,
-//         .quadhd_io_num = VSPI_IOMUX_PIN_NUM_HD,
-//         .quadwp_io_num = VSPI_IOMUX_PIN_NUM_WP,
-//     };
+    esp_at_port_write_data(arr, strlen((char *)arr));
 
-//     const esp_flash_spi_device_config_t device_config = {
-//         .host_id = VSPI_HOST,
-//         .cs_id = 0,
-//         .cs_io_num = VSPI_IOMUX_PIN_NUM_CS,
-//         .io_mode = SPI_FLASH_DIO,
-//         .speed = ESP_FLASH_40MHZ};
-
-//     ESP_LOGI(TAG, "Initializing external SPI Flash");
-//     ESP_LOGI(TAG, "Pin assignments:");
-//     ESP_LOGI(TAG, "MOSI: %2d   MISO: %2d   SCLK: %2d   CS: %2d",
-//              bus_config.mosi_io_num, bus_config.miso_io_num,
-//              bus_config.sclk_io_num, device_config.cs_io_num);
-
-//     // Initialize the SPI bus
-//     ESP_ERROR_CHECK(spi_bus_initialize(VSPI_HOST, &bus_config, 1));
-
-//     // Add device to the SPI bus
-//     esp_flash_t *ext_flash;
-//     ESP_ERROR_CHECK(spi_bus_add_flash_device(&ext_flash, &device_config));
-
-//     // Probe the Flash chip and initialize it
-//     esp_err_t err = esp_flash_init(ext_flash);
-//     if (err != ESP_OK)
-//     {
-//         ESP_LOGE(TAG, "Failed to initialize external Flash: %s (0x%x)", esp_err_to_name(err), err);
-//         return NULL;
-//     }
-
-//     // Print out the ID and size
-//     uint32_t id;
-//     ESP_ERROR_CHECK(esp_flash_read_id(ext_flash, &id));
-//     ESP_LOGI(TAG, "Initialized external Flash, size=%d KB, ID=0x%x", ext_flash->size / 1024, id);
-
-//     return ext_flash;
-// }
-
-// static const esp_partition_t *example_add_partition(esp_flash_t *ext_flash, const char *partition_label)
-// {
-//     ESP_LOGI(TAG, "Adding external Flash as a partition, label=\"%s\", size=%d KB", partition_label, ext_flash->size / 1024);
-//     const esp_partition_t *fat_partition;
-//     ESP_ERROR_CHECK(esp_partition_register_external(ext_flash, 0, ext_flash->size, partition_label, ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, &fat_partition));
-//     return fat_partition;
-// }
-
-// static void example_list_data_partitions(void)
-// {
-//     ESP_LOGI(TAG, "Listing data partitions:");
-//     esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, NULL);
-
-//     for (; it != NULL; it = esp_partition_next(it))
-//     {
-//         const esp_partition_t *part = esp_partition_get(it);
-//         ESP_LOGI(TAG, "- partition '%s', subtype %d, offset 0x%x, size %d kB",
-//                  part->label, part->subtype, part->address, part->size / 1024);
-//     }
-
-//     esp_partition_iterator_release(it);
-// }
-
-// static bool example_mount_fatfs(const char *partition_label)
-// {
-//     ESP_LOGI(TAG, "Mounting FAT filesystem");
-//     const esp_vfs_fat_mount_config_t mount_config = {
-//         .max_files = 4,
-//         .format_if_mount_failed = true,
-//         .allocation_unit_size = CONFIG_WL_SECTOR_SIZE};
-//     esp_err_t err = esp_vfs_fat_spiflash_mount(base_path, partition_label, &mount_config, &s_wl_handle);
-//     if (err != ESP_OK)
-//     {
-//         ESP_LOGE(TAG, "Failed to mount FATFS (%s)", esp_err_to_name(err));
-//         return false;
-//     }
-//     return true;
-// }
-
-// static void example_get_fatfs_usage(size_t* out_total_bytes, size_t* out_free_bytes)
-// {
-//     FATFS *fs;
-//     size_t free_clusters;
-//     int res = f_getfree("0:", &free_clusters, &fs);
-//     assert(res == FR_OK);
-//     size_t total_sectors = (fs->n_fatent - 2) * fs->csize;
-//     size_t free_sectors = free_clusters * fs->csize;
-
-//     // assuming the total size is < 4GiB, should be true for SPI Flash
-//     if (out_total_bytes != NULL) {
-//         *out_total_bytes = total_sectors * fs->ssize;
-//     }
-//     if (out_free_bytes != NULL) {
-//        *out_free_bytes = free_sectors * fs->ssize;
-//     }
-// }
-
-// static void fat_fs_save(char *output_buffer)
-// {
-//     // Set up SPI bus and initialize the external SPI Flash chip
-//     esp_flash_t *flash = example_init_ext_flash();
-//     if (flash == NULL)
-//     {
-//         return;
-//     }
-
-//     // // Add the entire external flash chip as a partition
-//     const char *partition_label = "storage";
-//     example_add_partition(flash, partition_label);
-
-//     // List the available partitions
-//     example_list_data_partitions();
-
-//     // Initialize FAT FS in the partition
-//     if (!example_mount_fatfs(partition_label))
-//     {
-//         return;
-//     }
-
-//     // Print FAT FS size information
-//     // size_t bytes_total, bytes_free;
-//     // example_get_fatfs_usage(&bytes_total, &bytes_free);
-//     // ESP_LOGI(TAG, "FAT FS: %d kB total, %d kB free", bytes_total / 1024, bytes_free / 1024);
-
-//     // Create a file in FAT FS
-//     ESP_LOGI(TAG, "Opening file");
-//     uint8_t arr[200] = {0};
-//     snprintf((char *)arr, 200, "Opening file\n");
-//     esp_at_port_write_data(arr, strlen((char *)arr));
-
-//     FILE *f = fopen("/extflash/hello.txt", "wb");
-//     if (f == NULL)
-//     {
-//         ESP_LOGE(TAG, "Failed to open file for writing");
-//         snprintf((char *)arr, 200, "Failed to open file for writing\n");
-//         esp_at_port_write_data(arr, strlen((char *)arr));
-//         return;
-//     }
-//     fprintf(f, "Written using ESP-IDF %s\n", esp_get_idf_version());
-//     fclose(f);
-//     ESP_LOGI(TAG, "File written");
-//     snprintf((char *)arr, 200, "File written\n");
-//     esp_at_port_write_data(arr, strlen((char *)arr));
-
-//     // Open file for reading
-//     ESP_LOGI(TAG, "Reading file");
-//     snprintf((char *)arr, 200, "Reading file\n");
-//     esp_at_port_write_data(arr, strlen((char *)arr));
-//     f = fopen("/extflash/hello.txt", "rb");
-//     if (f == NULL)
-//     {
-//         ESP_LOGE(TAG, "Failed to open file for reading");
-//         snprintf((char *)arr, 200, "Failed to open file for reading\n");
-//         esp_at_port_write_data(arr, strlen((char *)arr));
-//         return;
-//     }
-//     char line[128];
-//     fgets(line, sizeof(line), f);
-//     fclose(f);
-//     // strip newline
-//     char *pos = strchr(line, '\n');
-//     if (pos)
-//     {
-//         *pos = '\0';
-//     }
-//     ESP_LOGI(TAG, "Read from file: '%s'", line);
-//     snprintf((char *)arr, 200, "Read from file: '%s'\n", line);
-//         esp_at_port_write_data(arr, strlen((char *)arr));
-// }
-
-// Handle of the wear levelling library instance
-// static wl_handle_t s_wl_handle = WL_INVALID_HANDLE;
-
-// // Mount path for the partition
-// const char *base_path = "/spiflash";
-
-// static void save_fat_fs(void)
-// {
-//     ESP_LOGI(TAG, "Mounting FAT filesystem");
-//     uint8_t arr[200] = {0};
-//     snprintf((char *)arr, 200, "Mounting FAT filesystem\n");
-//     esp_at_port_write_data(arr, strlen((char *)arr));
-//     // To mount device we need name of device partition, define base_path
-//     // and allow format partition in case if it is new one and was not formated before
-//     const esp_vfs_fat_mount_config_t mount_config = {
-//         .max_files = 4,
-//         .format_if_mount_failed = true,
-//         .allocation_unit_size = CONFIG_WL_SECTOR_SIZE};
-//     esp_err_t err = esp_vfs_fat_spiflash_mount(base_path, "storage", &mount_config, &s_wl_handle);
-//     if (err != ESP_OK)
-//     {
-//         ESP_LOGE(TAG, "Failed to mount FATFS (%s)", esp_err_to_name(err));
-//         snprintf((char *)arr, 200, "Failed to mount FATFS (%s)\n", esp_err_to_name(err));
-//         esp_at_port_write_data(arr, strlen((char *)arr));
-//         return;
-//     }
-//     ESP_LOGI(TAG, "Opening file");
-//     snprintf((char *)arr, 200, "Opening file\n");
-//     esp_at_port_write_data(arr, strlen((char *)arr));
-//     FILE *f = fopen("/spiflash/hello.txt", "wb");
-//     if (f == NULL)
-//     {
-//         ESP_LOGE(TAG, "Failed to open file for writing");
-//         snprintf((char *)arr, 200, "Failed to open file for writing\n");
-//         esp_at_port_write_data(arr, strlen((char *)arr));
-//         return;
-//     }
-//     fprintf(f, "written using ESP-IDF %s\n", esp_get_idf_version());
-//     fclose(f);
-//     ESP_LOGI(TAG, "File written");
-//     snprintf((char *)arr, 200, "File written\n");
-//     esp_at_port_write_data(arr, strlen((char *)arr));
-
-//     // Open file for reading
-//     ESP_LOGI(TAG, "Reading file");
-//     snprintf((char *)arr, 200, "Reading file\n");
-//     esp_at_port_write_data(arr, strlen((char *)arr));
-//     f = fopen("/spiflash/hello.txt", "rb");
-//     if (f == NULL)
-//     {
-//         ESP_LOGE(TAG, "Failed to open file for reading");
-//         snprintf((char *)arr, 200, "Failed to open file for reading\n");
-//         esp_at_port_write_data(arr, strlen((char *)arr));
-//         return;
-//     }
-//     char line[128];
-//     fgets(line, sizeof(line), f);
-//     fclose(f);
-//     // strip newline
-//     char *pos = strchr(line, '\n');
-//     if (pos)
-//     {
-//         *pos = '\0';
-//     }
-//     ESP_LOGI(TAG, "Read from file: '%s'", line);
-//     snprintf((char *)arr, 200, "Read from file: '%s'\n", line);
-//     esp_at_port_write_data(arr, strlen((char *)arr));
-
-//     // Unmount FATFS
-//     ESP_LOGI(TAG, "Unmounting FAT filesystem");
-//     snprintf((char *)arr, 200, "Unmounting FAT filesystem\n");
-//     esp_at_port_write_data(arr, strlen((char *)arr));
-//     ESP_ERROR_CHECK(esp_vfs_fat_spiflash_unmount(base_path, s_wl_handle));
-
-//     ESP_LOGI(TAG, "Done");
-//     snprintf((char *)arr, 200, "Done\n");
-//     esp_at_port_write_data(arr, strlen((char *)arr));
-// }
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    free(buffer);
+}
 
 uint8_t at_exe_cmd_test(uint8_t *cmd_name)
+{
+    uint8_t buffer_2[64] = {0};
+
+    snprintf((char *)buffer_2, 64, "this cmd is execute cmd: %s\r\n", cmd_name);
+
+    esp_at_port_write_data(buffer_2, strlen((char *)buffer_2));
+
+    // user-defined operation of sending data to server or MCU
+    uint8_t data[15] = "pedro\n";
+
+    // send_data_to_server();
+    // pedro_function();
+    esp_at_port_write_data(data, strlen((char *)data));
+    // pedro_function();
+    // http_download_chunk_2();
+    // char output_buffer[MAX_HTTP_OUTPUT_BUFFER] = {0};
+    char *buffer = malloc(PEDRO_SIZE + 1);
+
+    // http_native_request_2(output_buffer);
+
+    http_perform_as_stream_reader_pedro(buffer);
+    spiffs(buffer);
+    // save_fat_fs();
+    // fat_fs_save(output_buffer);
+
+    // output SEND OK
+    esp_at_response_result(ESP_AT_RESULT_CODE_SEND_OK);
+
+    return ESP_AT_RESULT_CODE_OK;
+}
+
+uint8_t at_exe_cmd_send_test(uint8_t *cmd_name)
 {
     uint8_t buffer[64] = {0};
 
@@ -1636,14 +1461,8 @@ uint8_t at_exe_cmd_test(uint8_t *cmd_name)
     // send_data_to_server();
     // pedro_function();
     esp_at_port_write_data(data, strlen((char *)data));
-    // pedro_function();
-    // http_download_chunk_2();
-    char output_buffer[MAX_HTTP_OUTPUT_BUFFER] = {0};
 
-    http_native_request_2(output_buffer);
-    spiffs(output_buffer);
-    // save_fat_fs();
-    // fat_fs_save(output_buffer);
+    // send_file_to_flash();
 
     // output SEND OK
     esp_at_response_result(ESP_AT_RESULT_CODE_SEND_OK);
@@ -1651,7 +1470,7 @@ uint8_t at_exe_cmd_test(uint8_t *cmd_name)
     return ESP_AT_RESULT_CODE_OK;
 }
 
-#define BUFFER_LEN (2048)
+// #define BUFFER_LEN (2048)
 // static xSemaphoreHandle at_sync_sema_ = NULL;
 
 // void wait_data_callback(void)
@@ -1728,6 +1547,8 @@ static esp_at_cmd_struct at_custom_cmd[] = {
     {"+UART_CUR", NULL, at_queryCmdUart, at_setupCmdUart, NULL},
     {"+UART_DEF", NULL, at_queryCmdUartDef, at_setupCmdUartDef, NULL},
     {"+TEST", at_test_cmd_test, at_query_cmd_test, at_setup_cmd_test, at_exe_cmd_test},
+    // {"+SENDTEST", at_test_cmd_send_test, at_query_cmd_send_test, at_setup_cmd_send_test, at_exe_cmd_send_test},
+    {"+SENDTEST", NULL, NULL, NULL, at_exe_cmd_send_test},
 };
 
 void at_status_callback(esp_at_status_type status)
