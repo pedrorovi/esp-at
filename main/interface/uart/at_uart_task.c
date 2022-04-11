@@ -1058,18 +1058,21 @@ void pedro_function()
 //     return ESP_OK;
 // }
 
-static void http_download_chunk_2(void)
+static void http_download_chunk_2(int *length)
 {
     uint8_t data_2[15] = "pedro_func\n";
     uint8_t data_3[15] = "pedro_no_func\n";
     esp_http_client_config_t config = {
-        .url = "http://httpbin.org/encoding/utf8",
+        // .url = "http://httpbin.org/encoding/utf8",
+        .url = "http://httpbin.org/range/20000",
         .event_handler = _http_event_handler,
     };
     esp_http_client_handle_t client = esp_http_client_init(&config);
     esp_err_t err = esp_http_client_perform(client);
     uint8_t buffer[1024] = {0};
 
+    *length = esp_http_client_get_content_length(client);
+    
     if (err == ESP_OK)
     {
         ESP_LOGI(TAG, "HTTP chunk encoding Status = %d, content_length = %d",
@@ -1107,7 +1110,7 @@ static void http_native_request_2(char *output_buffer)
     // uint8_t buffer_4[200] = {0};
 
     esp_http_client_config_t config = {
-        .url = "http://httpbin.org/range/2000",
+        .url = "http://httpbin.org/range/20000",
     };
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
@@ -1134,7 +1137,7 @@ static void http_native_request_2(char *output_buffer)
             int data_read = esp_http_client_read_response(client, output_buffer, MAX_HTTP_OUTPUT_BUFFER);
             if (data_read >= 0)
             {
-                ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %d\n",
+                ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %d",
                          esp_http_client_get_status_code(client),
                          esp_http_client_get_content_length(client));
 
@@ -1186,7 +1189,7 @@ static void http_native_request_2(char *output_buffer)
 }
 
 // static const char *TAG = "example";
-static void spiffs(char *output_buffer)
+static void spiffs(char *output_buffer, int* length)
 {
 
     ESP_LOGI(TAG, "Initializing SPIFFS");
@@ -1273,7 +1276,7 @@ static void spiffs(char *output_buffer)
     // fprintf(f, "Hola pedro");
     // for(int loop=0;loop < MAX_HTTP_OUTPUT_BUFFER;++loop)
     // {
-    fwrite(output_buffer, sizeof(char), PEDRO_SIZE, f);
+    fwrite(output_buffer, sizeof(char), *length, f);
     // }
     // snprintf(f, MAX_HTTP_OUTPUT_BUFFER, output_buffer);
     fclose(f);
@@ -1351,12 +1354,12 @@ static void spiffs(char *output_buffer)
     esp_vfs_spiffs_unregister(conf.partition_label);
     ESP_LOGI(TAG, "SPIFFS unmounted");
     // uint8_t *arr = new uint8_t(200);
-    snprintf((char *)arr, 200, "SPIFFS unmounted\n");
+    snprintf((char *)arr, 200, "\nSPIFFS unmounted\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
     // arr = {0};
 }
 
-static void http_perform_as_stream_reader_pedro(char *buffer)
+static void http_perform_as_stream_reader_pedro(char *buffer, int* length)
 {
     // char *buffer = malloc(MAX_HTTP_RECV_BUFFER + 1);
     // char *buffer = malloc(10000);
@@ -1372,7 +1375,7 @@ static void http_perform_as_stream_reader_pedro(char *buffer)
     }
     esp_http_client_config_t config = {
         // .url = "http://httpbin.org/get",
-        .url = "http://httpbin.org/range/12000",
+        .url = "http://httpbin.org/range/20000",
     };
     esp_http_client_handle_t client = esp_http_client_init(&config);
     esp_err_t err;
@@ -1385,8 +1388,10 @@ static void http_perform_as_stream_reader_pedro(char *buffer)
         return;
     }
     int content_length = esp_http_client_fetch_headers(client);
+    // *length = content_length;
+
     int total_read_len = 0, read_len;
-    if (total_read_len < content_length && content_length <= PEDRO_SIZE)
+    if (total_read_len < content_length && content_length <= length)
     {
         read_len = esp_http_client_read(client, buffer, content_length);
         if (read_len <= 0)
@@ -1430,14 +1435,16 @@ uint8_t at_exe_cmd_test(uint8_t *cmd_name)
     // pedro_function();
     esp_at_port_write_data(data, strlen((char *)data));
     // pedro_function();
-    // http_download_chunk_2();
+    int length = NULL;
+    http_download_chunk_2(&length);
     // char output_buffer[MAX_HTTP_OUTPUT_BUFFER] = {0};
-    char *buffer = malloc(PEDRO_SIZE + 1);
-
+    char *buffer = malloc(length + 1);
+    
+    // int length = 0;
     // http_native_request_2(output_buffer);
 
-    http_perform_as_stream_reader_pedro(buffer);
-    spiffs(buffer);
+    http_perform_as_stream_reader_pedro(buffer, &length);
+    spiffs(buffer, &length);
     // save_fat_fs();
     // fat_fs_save(output_buffer);
 
