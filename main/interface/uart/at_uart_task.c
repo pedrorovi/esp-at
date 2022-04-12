@@ -769,8 +769,8 @@ static uint8_t at_queryCmdUartDef(uint8_t *cmd_name)
 
 static void http_download_chunk_2(int *length, uint8_t *buffer_url)
 {
-    uint8_t data_2[15] = "pedro_func\n";
-    uint8_t data_3[15] = "pedro_no_func\n";
+    uint8_t data_2[15] = "pedro_func\r\n";
+    uint8_t data_3[15] = "pedro_no_func\r\n";
     esp_http_client_config_t config = {
         // .url = "http://httpbin.org/encoding/utf8",
         // .url = "http://httpbin.org/range/20000",
@@ -792,7 +792,7 @@ static void http_download_chunk_2(int *length, uint8_t *buffer_url)
         esp_at_port_write_data(data_2, strlen((char *)data_2));
 
         // memcpy(buffer, esp_http_client_get_content_length(client), 20);
-        snprintf((char *)buffer, 1024, "HTTP chunk encoding Status = %d, content_length = %d\n",
+        snprintf((char *)buffer, 1024, "HTTP chunk encoding Status = %d, content_length = %d\r\n",
                  esp_http_client_get_status_code(client),
                  esp_http_client_get_content_length(client));
     }
@@ -800,7 +800,7 @@ static void http_download_chunk_2(int *length, uint8_t *buffer_url)
     {
         ESP_LOGE(TAG, "Error perform http request %s", esp_err_to_name(err));
         esp_at_port_write_data(data_3, strlen((char *)data_3));
-        snprintf((char *)buffer, strlen((char *)buffer), "Error perform http request %s", esp_err_to_name(err));
+        snprintf((char *)buffer, strlen((char *)buffer), "Error perform http request %s\r\n", esp_err_to_name(err));
     }
     esp_at_port_write_data(buffer, strlen((char *)buffer));
     // uint8_t data_buffer[15000] = {0};
@@ -851,7 +851,7 @@ static void http_native_request_2(char *output_buffer)
                          esp_http_client_get_status_code(client),
                          esp_http_client_get_content_length(client));
 
-                snprintf((char *)buffer_2, 1024, "HTTP GET Status = %d, content_length = %d\n",
+                snprintf((char *)buffer_2, 1024, "HTTP GET Status = %d, content_length = %d\r\n",
                          esp_http_client_get_status_code(client),
                          esp_http_client_get_content_length(client));
                 esp_at_port_write_data(buffer_2, strlen((char *)buffer_2));
@@ -904,7 +904,7 @@ static void spiffs_write(char *output_buffer, int *length)
 
     ESP_LOGI(TAG, "Initializing SPIFFS");
     uint8_t arr[200] = {0};
-    snprintf((char *)arr, 200, "Initializing SPIFFS\n");
+    snprintf((char *)arr, 200, "\r\nInitializing SPIFFS\r\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
     // arr = {0};
     // esp_at_port_write_data((uint8_t *)output_buffer, strlen((char *)output_buffer));
@@ -925,7 +925,7 @@ static void spiffs_write(char *output_buffer, int *length)
         {
             ESP_LOGE(TAG, "Failed to mount or format filesystem");
             // uint8_t *arr = new uint8_t(200);
-            snprintf((char *)arr, 200, "Failed to mount or format filesystem\n");
+            snprintf((char *)arr, 200, "Failed to mount or format filesystem\r\n");
             esp_at_port_write_data(arr, strlen((char *)arr));
             // arr = {0};
         }
@@ -933,7 +933,7 @@ static void spiffs_write(char *output_buffer, int *length)
         {
             ESP_LOGE(TAG, "Failed to find SPIFFS partition");
             // uint8_t *arr = new uint8_t(200);
-            snprintf((char *)arr, 200, "Failed to find SPIFFS partition\n");
+            snprintf((char *)arr, 200, "Failed to find SPIFFS partition\r\n");
             esp_at_port_write_data(arr, strlen((char *)arr));
             // arr = {0};
         }
@@ -941,7 +941,7 @@ static void spiffs_write(char *output_buffer, int *length)
         {
             ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
             // uint8_t *arr = new uint8_t(200);
-            snprintf((char *)arr, 200, "Failed to initialize SPIFFS (%s)\n", esp_err_to_name(ret));
+            snprintf((char *)arr, 200, "Failed to initialize SPIFFS (%s)\r\n", esp_err_to_name(ret));
             esp_at_port_write_data(arr, strlen((char *)arr));
             // arr = {0};
         }
@@ -954,7 +954,7 @@ static void spiffs_write(char *output_buffer, int *length)
     {
         ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
         // uint8_t *arr = new uint8_t(200);
-        snprintf((char *)arr, 200, "Failed to get SPIFFS partition information (%s)\n", esp_err_to_name(ret));
+        snprintf((char *)arr, 200, "Failed to get SPIFFS partition information (%s)\r\n", esp_err_to_name(ret));
         esp_at_port_write_data(arr, strlen((char *)arr));
         // arr = {0};
     }
@@ -962,7 +962,7 @@ static void spiffs_write(char *output_buffer, int *length)
     {
         ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
         // uint8_t *arr = new uint8_t(200);
-        snprintf((char *)arr, 200, "Partition size: total: %d, used: %d\n", total, used);
+        snprintf((char *)arr, 200, "Partition size: total: %d, used: %d\r\n", total, used);
         esp_at_port_write_data(arr, strlen((char *)arr));
         // arr = {0};
     }
@@ -971,7 +971,7 @@ static void spiffs_write(char *output_buffer, int *length)
     // First create a file.
     ESP_LOGI(TAG, "Opening file");
     // uint8_t *arr = new uint8_t(200);
-    snprintf((char *)arr, 200, "Opening file\n");
+    snprintf((char *)arr, 200, "Opening file\r\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
     // arr = {0};
     FILE *f = fopen("/spiffs/pedro.txt", "w");
@@ -979,7 +979,7 @@ static void spiffs_write(char *output_buffer, int *length)
     {
         ESP_LOGE(TAG, "Failed to open file for writing");
         // uint8_t *arr = new uint8_t(200);
-        snprintf((char *)arr, 200, "Failed to open file for writing\n");
+        snprintf((char *)arr, 200, "Failed to open file for writing\r\n");
         esp_at_port_write_data(arr, strlen((char *)arr));
         // arr = {0};
         return;
@@ -994,7 +994,7 @@ static void spiffs_write(char *output_buffer, int *length)
     fclose(f);
     ESP_LOGI(TAG, "File written");
     // uint8_t *arr = new uint8_t(200);
-    snprintf((char *)arr, 200, "\nFile written\n");
+    snprintf((char *)arr, 200, "File written\r\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
     // arr = {0};
 
@@ -1071,7 +1071,7 @@ static void spiffs_write(char *output_buffer, int *length)
     esp_vfs_spiffs_unregister(conf.partition_label);
     ESP_LOGI(TAG, "SPIFFS unmounted");
     // uint8_t *arr = new uint8_t(200);
-    snprintf((char *)arr, 200, "\nSPIFFS unmounted\n");
+    snprintf((char *)arr, 200, "SPIFFS unmounted\r\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
     // arr = {0};
 }
@@ -1081,7 +1081,7 @@ static void spiffs_read(char *output_buffer, int *length)
 
     ESP_LOGI(TAG, "Initializing SPIFFS");
     uint8_t arr[200] = {0};
-    snprintf((char *)arr, 200, "Initializing SPIFFS\n");
+    snprintf((char *)arr, 200, "Initializing SPIFFS\r\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
     // arr = {0};
     // esp_at_port_write_data((uint8_t *)output_buffer, strlen((char *)output_buffer));
@@ -1139,7 +1139,7 @@ static void spiffs_read(char *output_buffer, int *length)
     {
         ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
         // uint8_t *arr = new uint8_t(200);
-        snprintf((char *)arr, 200, "Partition size: total: %d, used: %d\n", total, used);
+        snprintf((char *)arr, 200, "Partition size: total: %d, used: %d\r\n", total, used);
         esp_at_port_write_data(arr, strlen((char *)arr));
         // arr = {0};
     }
@@ -1161,17 +1161,17 @@ static void spiffs_read(char *output_buffer, int *length)
     //     // arr = {0};
     //     return;
     // }
-  
+
     // Open renamed file for reading
     ESP_LOGI(TAG, "Reading file");
-    snprintf((char *)arr, 200, "\nReading file\n");
+    snprintf((char *)arr, 200, "Reading file\r\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
-    FILE *f= fopen("/spiffs/pedro.txt", "r");
+    FILE *f = fopen("/spiffs/pedro.txt", "r");
     if (f == NULL)
     {
         ESP_LOGE(TAG, "Failed to open file for reading");
         // uint8_t *arr = new uint8_t(200);
-        snprintf((char *)arr, 200, "Failed to open file for reading\n");
+        snprintf((char *)arr, 200, "Failed to open file for reading\r\n");
         esp_at_port_write_data(arr, strlen((char *)arr));
         // arr = {0};
 
@@ -1186,7 +1186,7 @@ static void spiffs_read(char *output_buffer, int *length)
     // {
     //     // cout << line << '\n';
     //     // snprintf((char *)array, 2048, line);
-        
+
     //     // for (int ix = 0; ix < strlen((char *)line); ix +=1){
     //     //     output_buffer[strlen((char *)line) * ix] = line[ix];
     //     // }
@@ -1201,15 +1201,21 @@ static void spiffs_read(char *output_buffer, int *length)
     fread(output_buffer, sizeof(char), length, f);
     // f.close();
     fclose(f);
-    snprintf((char *)arr, 200, "\nRead file\r\n");
+    snprintf((char *)arr, 200, "\r\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
+
     // strip newline
     esp_at_port_write_data((uint8_t *)output_buffer, strlen((char *)output_buffer));
+
+    snprintf((char *)arr, 200, "\r\n");
+    esp_at_port_write_data(arr, strlen((char *)arr));
     // char *pos = strchr(line, '\n');
     // if (pos)
     // {
     //     *pos = '\0';
     // }
+    snprintf((char *)arr, 200, "\r\nRead file\r\n");
+    esp_at_port_write_data(arr, strlen((char *)arr));
     // ESP_LOGI(TAG, "Read from file: '%s'", line);
     // snprintf((char *)arr, 200, "\nRead from file: '%s'\n", line);
     // esp_at_port_write_data(arr, strlen((char *)arr));
@@ -1224,7 +1230,7 @@ static void spiffs_read(char *output_buffer, int *length)
     esp_vfs_spiffs_unregister(conf.partition_label);
     ESP_LOGI(TAG, "SPIFFS unmounted");
     // uint8_t *arr = new uint8_t(200);
-    snprintf((char *)arr, 200, "\nSPIFFS unmounted\n");
+    snprintf((char *)arr, 200, "SPIFFS unmounted\r\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
     // arr = {0};
 }
@@ -1239,7 +1245,7 @@ static void http_perform_as_stream_reader_pedro(char *buffer, int *length, uint8
     if (buffer == NULL)
     {
         ESP_LOGE(TAG, "Cannot malloc http receive buffer");
-        snprintf((char *)arr, 200, "Cannot malloc http receive buffer\n");
+        snprintf((char *)arr, 200, "Cannot malloc http receive buffer\r\n");
         esp_at_port_write_data(arr, strlen((char *)arr));
         return;
     }
@@ -1253,13 +1259,15 @@ static void http_perform_as_stream_reader_pedro(char *buffer, int *length, uint8
     if ((err = esp_http_client_open(client, 0)) != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to open HTTP connection: %s", esp_err_to_name(err));
-        snprintf((char *)arr, 200, "Failed to open HTTP connection: %s\n", esp_err_to_name(err));
+        snprintf((char *)arr, 200, "Failed to open HTTP connection: %s\r\n", esp_err_to_name(err));
         esp_at_port_write_data(arr, strlen((char *)arr));
         free(buffer);
         return;
     }
     int content_length = esp_http_client_fetch_headers(client);
     // *length = content_length;
+    snprintf((char *)arr, 200, "\r\n");
+    esp_at_port_write_data(arr, strlen((char *)arr));
 
     int total_read_len = 0, read_len;
     if (total_read_len < content_length && content_length <= *length + 1)
@@ -1268,27 +1276,30 @@ static void http_perform_as_stream_reader_pedro(char *buffer, int *length, uint8
         if (read_len <= 0)
         {
             ESP_LOGE(TAG, "Error read data");
-            snprintf((char *)arr, 200, "Error read data\n");
+            snprintf((char *)arr, 200, "Error read data\r\n");
             esp_at_port_write_data(arr, strlen((char *)arr));
         }
         buffer[read_len] = 0;
         ESP_LOGD(TAG, "read_len = %d", read_len);
         // snprintf((char *)buffer, 513, buffer);
+
         esp_at_port_write_data((uint8_t *)buffer, strlen((char *)buffer));
     }
+    snprintf((char *)arr, 200, "\r\n");
+    esp_at_port_write_data(arr, strlen((char *)arr));
     ESP_LOGI(TAG, "\nHTTP Stream reader Status = %d, content_length = %d",
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
 
-    snprintf((char *)arr, 200, "\nHTTP Stream reader Status = %d, content_length = %d\n",
-             esp_http_client_get_status_code(client),
-             esp_http_client_get_content_length(client));
+    // snprintf((char *)arr, 200, "\r\nHTTP Stream reader Status = %d, content_length = %d\r\n",
+    //          esp_http_client_get_status_code(client),
+    //          esp_http_client_get_content_length(client));
 
-    esp_at_port_write_data(arr, strlen((char *)arr));
+    // esp_at_port_write_data(arr, strlen((char *)arr));
 
     esp_http_client_close(client);
     esp_http_client_cleanup(client);
-    //free(buffer);
+    // free(buffer);
 }
 
 uint8_t at_test_cmd_test(uint8_t *cmd_name)
@@ -1312,8 +1323,6 @@ uint8_t at_query_cmd_test(uint8_t *cmd_name)
 
     return ESP_AT_RESULT_CODE_OK;
 }
-
-
 
 uint8_t at_setup_cmd_test(uint8_t para_num)
 {
@@ -1343,7 +1352,6 @@ uint8_t at_setup_cmd_test(uint8_t para_num)
     snprintf((char *)buffer_print, 64, "first parameter is: %s\r\n", para_str_2);
     esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
 
-    
     // uint8_t buffer_url [128] = {0};
     // memcpy(buffer_url, buffer_print)
     http_download_chunk_2(&length, para_str_2);
@@ -1361,7 +1369,7 @@ uint8_t at_setup_cmd_test(uint8_t para_num)
     // snprintf((char *)buffer_print, 64, "Print buffer en UART\r\n");
     // esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
     // free(buffer);
-    //ESP 32 have 2 uarts
+    // ESP 32 have 2 uarts
     // spiffs_read(buffer, &length);
     // uart_write_bytes(UART_NUM_MAX - 2, buffer, length + 1);
 
@@ -1411,16 +1419,13 @@ uint8_t at_setup_cmd_send_test(uint8_t para_num)
     snprintf((char *)buffer_print, 64, "Length: %u\r\n", length);
     esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
     // free(buffer);
-    //ESP 32 have 2 uarts
+    // ESP 32 have 2 uarts
     spiffs_read(buffer_read, &length);
-    snprintf((char *)buffer_print, 64, "Print buffer en UART\r\n");
-    esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
-    snprintf((char *)buffer_print, 64, "Length: %u\r\n", length);
+    snprintf((char *)buffer_print, 64, "Print buffer en UART\r\n\n");
     esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
     uart_write_bytes(UART_NUM_MAX - 2, buffer_read, length);
-    snprintf((char *)buffer_print, 64, "\r\nLength: %u\r\n", length);
+    snprintf((char *)buffer_print, 64, "\n");
     esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
-
     // output SEND OK
     esp_at_response_result(ESP_AT_RESULT_CODE_SEND_OK);
     // length = 0;
