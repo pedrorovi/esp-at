@@ -50,6 +50,9 @@
 
 #define PEDRO_SIZE 12000
 
+static int length = 0;
+// int *length_p = NULL;
+
 // #include "esp_log.h"
 // #include "esp_http_client.h"
 
@@ -896,7 +899,7 @@ static void http_native_request_2(char *output_buffer)
 }
 
 // static const char *TAG = "example";
-static void spiffs(char *output_buffer, int *length)
+static void spiffs_write(char *output_buffer, int *length)
 {
 
     ESP_LOGI(TAG, "Initializing SPIFFS");
@@ -971,7 +974,7 @@ static void spiffs(char *output_buffer, int *length)
     snprintf((char *)arr, 200, "Opening file\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
     // arr = {0};
-    FILE *f = fopen("/spiffs/pedro_file.txt", "w");
+    FILE *f = fopen("/spiffs/pedro.txt", "w");
     if (f == NULL)
     {
         ESP_LOGE(TAG, "Failed to open file for writing");
@@ -981,7 +984,7 @@ static void spiffs(char *output_buffer, int *length)
         // arr = {0};
         return;
     }
-    // fprintf(f, "pedro_file pedro");
+    // fprintf(f, "pedro pedro");
     // for(int loop=0;loop < MAX_HTTP_OUTPUT_BUFFER;++loop)
     // {
     fwrite(output_buffer, sizeof(char), *length, f);
@@ -1010,7 +1013,7 @@ static void spiffs(char *output_buffer, int *length)
     // esp_at_port_write_data(arr, strlen((char *)arr));
     // // arr = {0};
 
-    // if (rename("/spiffs/pedro_file.txt", "/spiffs/foo.txt") != 0)
+    // if (rename("/spiffs/pedro.txt", "/spiffs/foo.txt") != 0)
     // {
     //     ESP_LOGE(TAG, "Rename failed");
     //     // uint8_t *arr = new uint8_t(200);
@@ -1022,10 +1025,148 @@ static void spiffs(char *output_buffer, int *length)
     // }
 
     // Open renamed file for reading
+    // ESP_LOGI(TAG, "Reading file");
+    // snprintf((char *)arr, 200, "\nReading file\n");
+    // esp_at_port_write_data(arr, strlen((char *)arr));
+    // f = fopen("/spiffs/pedro.txt", "r");
+    // if (f == NULL)
+    // {
+    //     ESP_LOGE(TAG, "Failed to open file for reading");
+    //     // uint8_t *arr = new uint8_t(200);
+    //     snprintf((char *)arr, 200, "Failed to open file for reading\n");
+    //     esp_at_port_write_data(arr, strlen((char *)arr));
+    //     // arr = {0};
+
+    //     return;
+    // }
+    // char line[*length];
+    // // char *line = malloc(length + 1);
+    // // uint8_t array[MAX_HTTP_OUTPUT_BUFFER] = {0};
+    // // fgets(line, sizeof(line), f);
+    // while (fgets(line, sizeof(line), f))
+    // {
+    //     // cout << line << '\n';
+    //     // snprintf((char *)array, 2048, line);
+    //     esp_at_port_write_data((uint8_t *)line, strlen((char *)line));
+    // }
+    // // f.close();
+    // fclose(f);
+    // strip newline
+    // char *pos = strchr(line, '\n');
+    // if (pos)
+    // {
+    //     *pos = '\0';
+    // }
+    // ESP_LOGI(TAG, "Read from file: '%s'", line);
+    // snprintf((char *)arr, 200, "\nRead from file: '%s'\n", line);
+    // esp_at_port_write_data(arr, strlen((char *)arr));
+    // uint8_t *arr = new uint8_t(200);
+    // snprintf((char *)arr, 200, "Read from file: '%s'\n", line);
+    // esp_at_port_write_data(arr, strlen((char *)arr));
+    // arr = {0};
+
+    // esp_at_port_write_data(array, strlen((char *)array));
+
+    // All done, unmount partition and disable SPIFFS
+    esp_vfs_spiffs_unregister(conf.partition_label);
+    ESP_LOGI(TAG, "SPIFFS unmounted");
+    // uint8_t *arr = new uint8_t(200);
+    snprintf((char *)arr, 200, "\nSPIFFS unmounted\n");
+    esp_at_port_write_data(arr, strlen((char *)arr));
+    // arr = {0};
+}
+
+static void spiffs_read(char *output_buffer, int *length)
+{
+
+    ESP_LOGI(TAG, "Initializing SPIFFS");
+    uint8_t arr[200] = {0};
+    snprintf((char *)arr, 200, "Initializing SPIFFS\n");
+    esp_at_port_write_data(arr, strlen((char *)arr));
+    // arr = {0};
+    // esp_at_port_write_data((uint8_t *)output_buffer, strlen((char *)output_buffer));
+
+    esp_vfs_spiffs_conf_t conf = {
+        .base_path = "/spiffs",
+        .partition_label = NULL,
+        .max_files = 5,
+        .format_if_mount_failed = true};
+
+    // Use settings defined above to initialize and mount SPIFFS filesystem.
+    // Note: esp_vfs_spiffs_register is an all-in-one convenience function.
+    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+
+    if (ret != ESP_OK)
+    {
+        if (ret == ESP_FAIL)
+        {
+            ESP_LOGE(TAG, "Failed to mount or format filesystem");
+            // uint8_t *arr = new uint8_t(200);
+            snprintf((char *)arr, 200, "Failed to mount or format filesystem\n");
+            esp_at_port_write_data(arr, strlen((char *)arr));
+            // arr = {0};
+        }
+        else if (ret == ESP_ERR_NOT_FOUND)
+        {
+            ESP_LOGE(TAG, "Failed to find SPIFFS partition");
+            // uint8_t *arr = new uint8_t(200);
+            snprintf((char *)arr, 200, "Failed to find SPIFFS partition\n");
+            esp_at_port_write_data(arr, strlen((char *)arr));
+            // arr = {0};
+        }
+        else
+        {
+            ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
+            // uint8_t *arr = new uint8_t(200);
+            snprintf((char *)arr, 200, "Failed to initialize SPIFFS (%s)\n", esp_err_to_name(ret));
+            esp_at_port_write_data(arr, strlen((char *)arr));
+            // arr = {0};
+        }
+        return;
+    }
+
+    size_t total = 0, used = 0;
+    ret = esp_spiffs_info(conf.partition_label, &total, &used);
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+        // uint8_t *arr = new uint8_t(200);
+        snprintf((char *)arr, 200, "Failed to get SPIFFS partition information (%s)\n", esp_err_to_name(ret));
+        esp_at_port_write_data(arr, strlen((char *)arr));
+        // arr = {0};
+    }
+    else
+    {
+        ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+        // uint8_t *arr = new uint8_t(200);
+        snprintf((char *)arr, 200, "Partition size: total: %d, used: %d\n", total, used);
+        esp_at_port_write_data(arr, strlen((char *)arr));
+        // arr = {0};
+    }
+
+    // Use POSIX and C standard library functions to work with files.
+    // First create a file.
+    // ESP_LOGI(TAG, "Opening file");
+    // // uint8_t *arr = new uint8_t(200);
+    // snprintf((char *)arr, 200, "Opening file\n");
+    // esp_at_port_write_data(arr, strlen((char *)arr));
+    // // arr = {0};
+    // FILE *f = fopen("/spiffs/pedro.txt", "w");
+    // if (f == NULL)
+    // {
+    //     ESP_LOGE(TAG, "Failed to open file for writing");
+    //     // uint8_t *arr = new uint8_t(200);
+    //     snprintf((char *)arr, 200, "Failed to open file for writing\n");
+    //     esp_at_port_write_data(arr, strlen((char *)arr));
+    //     // arr = {0};
+    //     return;
+    // }
+  
+    // Open renamed file for reading
     ESP_LOGI(TAG, "Reading file");
     snprintf((char *)arr, 200, "\nReading file\n");
     esp_at_port_write_data(arr, strlen((char *)arr));
-    f = fopen("/spiffs/pedro_file.txt", "r");
+    FILE *f= fopen("/spiffs/pedro.txt", "r");
     if (f == NULL)
     {
         ESP_LOGE(TAG, "Failed to open file for reading");
@@ -1040,15 +1181,30 @@ static void spiffs(char *output_buffer, int *length)
     // char *line = malloc(length + 1);
     // uint8_t array[MAX_HTTP_OUTPUT_BUFFER] = {0};
     // fgets(line, sizeof(line), f);
-    while (fgets(line, sizeof(line), f))
-    {
-        // cout << line << '\n';
-        // snprintf((char *)array, 2048, line);
-        esp_at_port_write_data((uint8_t *)line, strlen((char *)line));
-    }
+    int counter = 0;
+    // while (fgets(line, sizeof(line), f) != 0)
+    // {
+    //     // cout << line << '\n';
+    //     // snprintf((char *)array, 2048, line);
+        
+    //     // for (int ix = 0; ix < strlen((char *)line); ix +=1){
+    //     //     output_buffer[strlen((char *)line) * ix] = line[ix];
+    //     // }
+    //     // memcpy(output_buffer[128*counter], line, strlen((char *)line));
+    //     // strcpy(output_buffer[128*counter], line);
+    //     // counter++;
+    //     esp_at_port_write_data((uint8_t *)line, strlen((char *)line));
+    //     memcpy(output_buffer, line, strlen((char *)line));
+    // }
+    // long bufsize = ftell(f);
+    // memcpy(output_buffer, line, strlen((char *)line));
+    fread(output_buffer, sizeof(char), length, f);
     // f.close();
     fclose(f);
+    snprintf((char *)arr, 200, "\nRead file\r\n");
+    esp_at_port_write_data(arr, strlen((char *)arr));
     // strip newline
+    esp_at_port_write_data((uint8_t *)output_buffer, strlen((char *)output_buffer));
     // char *pos = strchr(line, '\n');
     // if (pos)
     // {
@@ -1157,6 +1313,8 @@ uint8_t at_query_cmd_test(uint8_t *cmd_name)
     return ESP_AT_RESULT_CODE_OK;
 }
 
+
+
 uint8_t at_setup_cmd_test(uint8_t para_num)
 {
     int32_t para_int_1 = 0;
@@ -1185,7 +1343,7 @@ uint8_t at_setup_cmd_test(uint8_t para_num)
     snprintf((char *)buffer_print, 64, "first parameter is: %s\r\n", para_str_2);
     esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
 
-    int length = 0;
+    
     // uint8_t buffer_url [128] = {0};
     // memcpy(buffer_url, buffer_print)
     http_download_chunk_2(&length, para_str_2);
@@ -1197,13 +1355,76 @@ uint8_t at_setup_cmd_test(uint8_t para_num)
 
     http_perform_as_stream_reader_pedro(buffer, &length, para_str_2);
     // esp_at_port_write_data((uint8_t *)buffer, strlen((char *)buffer));
-    spiffs(buffer, &length);
+    spiffs_write(buffer, &length);
     // save_fat_fs();
     // fat_fs_save(output_buffer);
+    // snprintf((char *)buffer_print, 64, "Print buffer en UART\r\n");
+    // esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
+    // free(buffer);
+    //ESP 32 have 2 uarts
+    // spiffs_read(buffer, &length);
+    // uart_write_bytes(UART_NUM_MAX - 2, buffer, length + 1);
 
     // output SEND OK
     esp_at_response_result(ESP_AT_RESULT_CODE_SEND_OK);
+    // length = 0;
     free(buffer);
+    return ESP_AT_RESULT_CODE_OK;
+}
+
+uint8_t at_setup_cmd_send_test(uint8_t para_num)
+{
+    int32_t para_int_1 = 0;
+    uint8_t *para_str_2 = NULL;
+    uint8_t num_index = 0;
+    uint8_t buffer_print[64] = {0};
+
+    // if (esp_at_get_para_as_digit(num_index++, &para_int_1) != ESP_AT_PARA_PARSE_RESULT_OK)
+    // {
+    //     return ESP_AT_RESULT_CODE_ERROR;
+    // }
+
+    if (esp_at_get_para_as_str(num_index++, &para_str_2) != ESP_AT_PARA_PARSE_RESULT_OK)
+    {
+        return ESP_AT_RESULT_CODE_ERROR;
+    }
+
+    snprintf((char *)buffer_print, 64, "this cmd is setup cmd and cmd num is: %u\r\n", para_num);
+    esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
+
+    // memset(buffer_print, 0, 64);
+    // snprintf((char *)buffer_print, 64, "first parameter is: %d\r\n", para_int_1);
+    // esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
+
+    memset(buffer_print, 0, 64);
+    snprintf((char *)buffer_print, 64, "first parameter is: %s\r\n", para_str_2);
+    esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
+
+    // int length = 0;
+    // uint8_t buffer_url [128] = {0};
+    // memcpy(buffer_url, buffer_print)
+    // http_download_chunk_2(&length, para_str_2);
+    // char output_buffer[MAX_HTTP_OUTPUT_BUFFER] = {0};
+
+    char *buffer_read = malloc(length + 1);
+
+    snprintf((char *)buffer_print, 64, "Length: %u\r\n", length);
+    esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
+    // free(buffer);
+    //ESP 32 have 2 uarts
+    spiffs_read(buffer_read, &length);
+    snprintf((char *)buffer_print, 64, "Print buffer en UART\r\n");
+    esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
+    snprintf((char *)buffer_print, 64, "Length: %u\r\n", length);
+    esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
+    uart_write_bytes(UART_NUM_MAX - 2, buffer_read, length);
+    snprintf((char *)buffer_print, 64, "\r\nLength: %u\r\n", length);
+    esp_at_port_write_data(buffer_print, strlen((char *)buffer_print));
+
+    // output SEND OK
+    esp_at_response_result(ESP_AT_RESULT_CODE_SEND_OK);
+    // length = 0;
+    free(buffer_read);
     return ESP_AT_RESULT_CODE_OK;
 }
 
@@ -1389,6 +1610,7 @@ uint8_t at_exe_cmd_test(uint8_t *cmd_name)
     // spiffs(buffer, &length);
     // save_fat_fs();
     // fat_fs_save(output_buffer);
+    // uart_write_bytes();
 
     // output SEND OK
     esp_at_response_result(ESP_AT_RESULT_CODE_SEND_OK);
@@ -1498,7 +1720,7 @@ static esp_at_cmd_struct at_custom_cmd[] = {
     {"+UART_DEF", NULL, at_queryCmdUartDef, at_setupCmdUartDef, NULL},
     {"+TEST", at_test_cmd_test, at_query_cmd_test, at_setup_cmd_test, at_exe_cmd_test},
     // {"+SENDTEST", at_test_cmd_send_test, at_query_cmd_send_test, at_setup_cmd_send_test, at_exe_cmd_send_test},
-    {"+SENDTEST", NULL, NULL, NULL, at_exe_cmd_send_test},
+    {"+SENDTEST", NULL, NULL, at_setup_cmd_send_test, at_exe_cmd_send_test},
 };
 
 void at_status_callback(esp_at_status_type status)
