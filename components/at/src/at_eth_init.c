@@ -86,8 +86,43 @@ bool esp_at_get_eth_default_config() {
   // application)
   ESP_ERROR_CHECK(esp_netif_init());
 
-  // Create default event loop that running in background
-  ESP_ERROR_CHECK(esp_event_loop_create_default());
+  // // Create default event loop that running in background
+  // ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+#if CONFIG_ETH_USE_ESP32_EMAC
+  // Create new default instance of esp-netif for Ethernet
+  esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
+  esp_netif_t *eth_netif = esp_netif_new(&cfg);
+
+  // Init MAC and PHY configs to default
+  eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
+  eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
+
+  phy_config.phy_addr = CONFIG_AT_ETH_PHY_ADDR;
+  phy_config.reset_gpio_num = CONFIG_AT_ETH_PHY_RST_GPIO;
+  eth_esp32_emac_config_t esp32_emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
+  esp32_emac_config.smi_mdc_gpio_num = CONFIG_AT_ETH_MDC_GPIO;
+  esp32_emac_config.smi_mdio_gpio_num = CONFIG_AT_ETH_MDIO_GPIO;
+  esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
+#if CONFIG_PHY_IP101
+  esp_eth_phy_t *phy = esp_eth_phy_new_ip101(&phy_config);
+#elif CONFIG_PHY_RTL8201
+  esp_eth_phy_t *phy = esp_eth_phy_new_rtl8201(&phy_config);
+#elif CONFIG_PHY_LAN8720
+  esp_eth_phy_t *phy = esp_eth_phy_new_lan87xx(&phy_config);
+#elif CONFIG_PHY_DP83848
+  esp_eth_phy_t *phy = esp_eth_phy_new_dp83848(&phy_config);
+#else
+  esp_eth_phy_t *phy = NULL;
+#endif
+  esp_eth_config_t config = ETH_DEFAULT_CONFIG(mac, phy);
+  esp_eth_handle_t eth_handle = NULL;
+  ESP_ERROR_CHECK(esp_eth_driver_install(&config, &eth_handle));
+  /* attach Ethernet driver to TCP/IP stack */
+  ESP_ERROR_CHECK(
+      esp_netif_attach(eth_netif, esp_eth_new_netif_glue(eth_handle)));
+
+#endif // CONFIG_ETH_USE_ESP32_MAC
 
 #if CONFIG_ETH_USE_SPI_ETHERNET
   // Create instance(s) of esp-netif for SPI Ethernet(s)
@@ -171,6 +206,9 @@ bool esp_at_get_eth_default_config() {
 #endif
     esp_eth_config_t eth_config_spi =
         ETH_DEFAULT_CONFIG(mac_spi[i], phy_spi[i]);
+
+    ESP_LOGI(TAG, "Installing driver");
+
     ESP_ERROR_CHECK(
         esp_eth_driver_install(&eth_config_spi, &eth_handle_spi[i]));
 
@@ -186,41 +224,6 @@ bool esp_at_get_eth_default_config() {
     ESP_ERROR_CHECK(esp_netif_attach(
         eth_netif_spi[i], esp_eth_new_netif_glue(eth_handle_spi[i])));
   }
-
-#else
-
-  // Create new default instance of esp-netif for Ethernet
-  esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
-  esp_netif_t *eth_netif = esp_netif_new(&cfg);
-
-  // Init MAC and PHY configs to default
-  eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
-  eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
-
-  phy_config.phy_addr = CONFIG_AT_ETH_PHY_ADDR;
-  phy_config.reset_gpio_num = CONFIG_AT_ETH_PHY_RST_GPIO;
-  eth_esp32_emac_config_t esp32_emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
-  esp32_emac_config.smi_mdc_gpio_num = CONFIG_AT_ETH_MDC_GPIO;
-  esp32_emac_config.smi_mdio_gpio_num = CONFIG_AT_ETH_MDIO_GPIO;
-  esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
-#if CONFIG_PHY_IP101
-  esp_eth_phy_t *phy = esp_eth_phy_new_ip101(&phy_config);
-#elif CONFIG_PHY_RTL8201
-  esp_eth_phy_t *phy = esp_eth_phy_new_rtl8201(&phy_config);
-#elif CONFIG_PHY_LAN8720
-  esp_eth_phy_t *phy = esp_eth_phy_new_lan87xx(&phy_config);
-#elif CONFIG_PHY_DP83848
-  esp_eth_phy_t *phy = esp_eth_phy_new_dp83848(&phy_config);
-#else
-  esp_eth_phy_t *phy = NULL;
-#endif
-  esp_eth_config_t config = ETH_DEFAULT_CONFIG(mac, phy);
-  esp_eth_handle_t eth_handle = NULL;
-  // ESP_ERROR_CHECK(esp_eth_driver_install(&config, &eth_handle));
-  /* attach Ethernet driver to TCP/IP stack */
-  ESP_ERROR_CHECK(
-      esp_netif_attach(eth_netif, esp_eth_new_netif_glue(eth_handle)));
-
 #endif // CONFIG_ETH_USE_SPI_ETHERNET
 
   // Register user defined event handers
@@ -231,13 +234,15 @@ bool esp_at_get_eth_default_config() {
 
   /* start Ethernet driver state machine */
 
+  /* start Ethernet driver state machine */
+#if CONFIG_ETH_USE_ESP32_EMAC
+  ESP_ERROR_CHECK(esp_eth_start(eth_handle));
+#endif // CONFIG_ETH_USE_ESP32_EMAC
 #if CONFIG_ETH_USE_SPI_ETHERNET
   for (int i = 0; i < CONFIG_SPI_ETHERNETS_NUM; i++) {
     ESP_ERROR_CHECK(esp_eth_start(eth_handle_spi[i]));
   }
-#else  // CONFIG_ETH_USE_SPI_ETHERNET
-  ESP_ERROR_CHECK(esp_eth_start(eth_handle));
-#endif // CONFIG_ETH_USE_ESP32_EMAC
+#endif // CONFIG_ETH_USE_SPI_ETHERNET
 
   return true;
 }
