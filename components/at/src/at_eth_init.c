@@ -163,14 +163,11 @@ bool esp_at_get_eth_default_config() {
     mac_spi[i] = esp_eth_mac_new_dm9051(&dm9051_config, &mac_config_spi);
     phy_spi[i] = esp_eth_phy_new_dm9051(&phy_config_spi);
 #elif CONFIG_ETH_SPI_ETHERNET_W5500
-    ESP_LOGI(TAG, "CONFIG_ETH_SPI_ETHERNET_W5500");
     eth_w5500_config_t w5500_config =
         ETH_W5500_DEFAULT_CONFIG(CONFIG_ETH_SPI_HOST, &spi_devcfg);
     w5500_config.int_gpio_num = spi_eth_module_config[i].int_gpio;
     mac_spi[i] = esp_eth_mac_new_w5500(&w5500_config, &mac_config_spi);
-    // ESP_LOGI(TAG, "Mac is null? %d", mac_spi[i] == NULL);
     phy_spi[i] = esp_eth_phy_new_w5500(&phy_config_spi);
-    // ESP_LOGI(TAG, "Phy is null? %d", phy_spi[i] == NULL);
 #endif
     esp_eth_config_t eth_config_spi =
         ETH_DEFAULT_CONFIG(mac_spi[i], phy_spi[i]);
